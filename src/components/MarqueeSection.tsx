@@ -5,7 +5,7 @@ const scrollItems = [
   "Study in Australia",
   "Migration Services",
   "Second Passport",
-  "BSB Travel",
+  "Digital Desk Travel",
   "Visa Processing",
   "SOP Writing",
   "Free Consultation",

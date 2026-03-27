@@ -5,7 +5,7 @@ const testimonials = [
     name: "Adaeze Okonkwo",
     role: "Studied in Canada",
     rating: 5,
-    text: "Online Dynamics made my dream of studying abroad a reality! The visa processing was seamless, and the consultation gave me clarity on every step. Highly recommended!",
+    text: "text: "The Digital Desk made my dream of studying abroad a reality! The visa processing was seamless, and the consultation gave me clarity on every step. Highly recommended!", of studying abroad a reality! The visa processing was seamless, and the consultation gave me clarity on every step. Highly recommended!",
   },
   {
     name: "Emeka Nwosu",
