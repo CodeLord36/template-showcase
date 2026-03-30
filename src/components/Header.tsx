@@ -45,7 +45,7 @@ const Header = () => {
           {/* Logo */}
           <a href="#" className="flex flex-col items-center">
             <span className="font-display text-2xl font-bold tracking-tight text-foreground">
-              The Digital Desk
+              Online Dynamics & BSB
             </span>
           </a>
 
