@@ -1,4 +1,5 @@
 import { Star, ArrowRight } from "lucide-react";
+import { useMedusaProducts, getProductPrice, getProductRating, getProductBadge } from "@/hooks/use-medusa-products";
 
 type Service = {
   id: number;
