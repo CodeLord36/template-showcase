@@ -1,9 +1,10 @@
 import { Star, ArrowRight, Heart, Eye, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import QuickViewModal from "./QuickViewModal";
+import { useMedusaProducts, getProductPrice, getProductRating, getProductBadge } from "@/hooks/use-medusa-products";
 
 type Product = {
-  id: number;
+  id: number | string;
   title: string;
   price: string;
   originalPrice?: string;
