@@ -125,8 +125,9 @@ const HighTicketServices = () => {
               </div>
               <p className="font-body text-xl font-bold text-foreground">{service.price}</p>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
