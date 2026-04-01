@@ -1,9 +1,10 @@
 import { Star, ArrowRight, Heart, Eye, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import QuickViewModal from "./QuickViewModal";
+import { useMedusaProducts, getProductPrice, getProductRating, getProductBadge } from "@/hooks/use-medusa-products";
 
 type Product = {
-  id: number;
+  id: number | string;
   title: string;
   price: string;
   originalPrice?: string;
@@ -152,6 +153,27 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
 
 const FeaturedProducts = () => {
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const { data, isLoading } = useMedusaProducts({ limit: 4 });
+
+  // Map Medusa products to local Product type, fallback to hardcoded
+  const displayProducts: Product[] = data?.products?.length
+    ? data.products.map((mp) => {
+        const { price, originalPrice } = getProductPrice(mp);
+        const badge = getProductBadge(mp);
+        return {
+          id: mp.id,
+          title: mp.title,
+          price: price || "$0.00",
+          originalPrice: originalPrice ?? undefined,
+          badge: badge?.text,
+          badgeColor: badge?.color,
+          rating: getProductRating(mp),
+          type: (mp.metadata?.type as "digital" | "service") || "digital",
+          description: mp.description || "",
+          saleRibbon: mp.metadata?.saleRibbon as string | undefined,
+        };
+      })
+    : products;
 
   return (
     <>
@@ -174,15 +196,27 @@ const FeaturedProducts = () => {
             </a>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onQuickView={setQuickViewProduct}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-muted rounded-lg aspect-[3/4] mb-4" />
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+              {displayProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onQuickView={setQuickViewProduct}
+                />
+              ))}
+            </div>
+          )}
 
           <div className="md:hidden mt-8 text-center">
             <a

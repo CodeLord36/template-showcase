@@ -1,4 +1,5 @@
 import { Star, ArrowRight } from "lucide-react";
+import { useMedusaProducts, getProductPrice, getProductRating, getProductBadge } from "@/hooks/use-medusa-products";
 
 type Service = {
   id: number;
@@ -44,6 +45,24 @@ const services: Service[] = [
 ];
 
 const HighTicketServices = () => {
+  // Try fetching from Medusa collection tagged "services" via metadata
+  const { data, isLoading } = useMedusaProducts({ limit: 4, tags: ["service"] });
+
+  const displayServices: Service[] = data?.products?.length
+    ? data.products.map((mp) => {
+        const { price } = getProductPrice(mp);
+        const badge = getProductBadge(mp);
+        return {
+          id: mp.id as unknown as number,
+          title: mp.title,
+          price: price || "$0.00",
+          description: mp.description || "",
+          rating: getProductRating(mp),
+          badge: badge?.text,
+        };
+      })
+    : services;
+
   return (
     <section className="py-16 md:py-24 bg-surface-warm">
       <div className="container">
@@ -64,8 +83,20 @@ const HighTicketServices = () => {
           </a>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map((service) => (
+        {isLoading ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="animate-pulse bg-card rounded-lg border border-border p-6">
+                <div className="h-4 bg-muted rounded w-1/3 mb-4" />
+                <div className="h-5 bg-muted rounded w-3/4 mb-2" />
+                <div className="h-3 bg-muted rounded w-full mb-4" />
+                <div className="h-6 bg-muted rounded w-1/4" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {displayServices.map((service) => (
             <div
               key={service.id}
               className="bg-card rounded-lg border border-border p-6 hover:shadow-lg hover:border-secondary/30 transition-all duration-300 group cursor-pointer"
@@ -94,8 +125,9 @@ const HighTicketServices = () => {
               </div>
               <p className="font-body text-xl font-bold text-foreground">{service.price}</p>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
