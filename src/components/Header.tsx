@@ -44,7 +44,7 @@ const Header = () => {
           </button>
 
           {/* Logo */}
-          <a href="#" className="flex flex-col items-center">
+          <Link to="/" className="flex flex-col items-center">
             <span className="font-display text-2xl font-bold tracking-tight text-foreground">
               Online Dynamics & BSB
             </span>
