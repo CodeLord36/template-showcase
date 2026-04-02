@@ -1,14 +1,15 @@
 import { Search, User, Heart, ShoppingCart, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import SearchOverlay from "./SearchOverlay";
 import CartDrawer from "./CartDrawer";
 
 const navLinks = [
-  { label: "Home", href: "#" },
-  { label: "Services", href: "#services" },
-  { label: "Products", href: "#products" },
-  { label: "Blog", href: "#blog" },
-  { label: "Contact", href: "#contact" },
+  { label: "Home", href: "/" },
+  { label: "Services", href: "/services" },
+  { label: "About", href: "/about" },
+  { label: "Blog", href: "/blog" },
+  { label: "Contact", href: "/contact" },
 ];
 
 const Header = () => {
@@ -23,13 +24,13 @@ const Header = () => {
           {/* Left nav */}
           <nav className="hidden lg:flex items-center gap-8">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.label}
-                href={link.href}
+                to={link.href}
                 className="text-sm font-medium text-foreground hover:text-secondary transition-colors tracking-wide"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -43,11 +44,11 @@ const Header = () => {
           </button>
 
           {/* Logo */}
-          <a href="#" className="flex flex-col items-center">
+          <Link to="/" className="flex flex-col items-center">
             <span className="font-display text-2xl font-bold tracking-tight text-foreground">
               Online Dynamics & BSB
             </span>
-          </a>
+          </Link>
 
           {/* Right icons */}
           <div className="flex items-center gap-4">
@@ -82,14 +83,14 @@ const Header = () => {
           <nav className="lg:hidden border-t border-border bg-background py-4">
             <div className="container flex flex-col gap-3">
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.label}
-                  href={link.href}
+                  to={link.href}
                   className="text-sm font-medium text-foreground hover:text-secondary py-2 transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </div>
           </nav>
