@@ -24,13 +24,13 @@ const Header = () => {
           {/* Left nav */}
           <nav className="hidden lg:flex items-center gap-8">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.label}
-                href={link.href}
+                to={link.href}
                 className="text-sm font-medium text-foreground hover:text-secondary transition-colors tracking-wide"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </nav>
 
