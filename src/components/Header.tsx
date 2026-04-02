@@ -83,14 +83,14 @@ const Header = () => {
           <nav className="lg:hidden border-t border-border bg-background py-4">
             <div className="container flex flex-col gap-3">
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.label}
-                  href={link.href}
+                  to={link.href}
                   className="text-sm font-medium text-foreground hover:text-secondary py-2 transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </div>
           </nav>
