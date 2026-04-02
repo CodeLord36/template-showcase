@@ -48,7 +48,7 @@ const Header = () => {
             <span className="font-display text-2xl font-bold tracking-tight text-foreground">
               Online Dynamics & BSB
             </span>
-          </a>
+          </Link>
 
           {/* Right icons */}
           <div className="flex items-center gap-4">
