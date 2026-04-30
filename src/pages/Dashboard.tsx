@@ -11,7 +11,7 @@ type Tab = "profile" | "orders" | "cart" | "favourites" | "downloads" | "setting
 
 const Dashboard = () => {
   const { user, isAuthenticated, logout, openAuthModal } = useAuth();
-  const { cart, favourites, removeFromCart, updateQty, toggleFavourite, addToCart, cartSubtotal, clearCart } = useShop();
+  const { cart, favourites, removeFromCart, updateQty, toggleFavourite, addToCart, cartSubtotal, clearCart, checkout } = useShop();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("profile");
 
@@ -167,7 +167,7 @@ const Dashboard = () => {
                           <p className="text-sm text-muted-foreground font-body">Subtotal</p>
                           <p className="text-2xl font-bold text-foreground font-body">${cartSubtotal.toFixed(2)}</p>
                         </div>
-                        <button className="bg-secondary text-secondary-foreground font-semibold px-8 py-3 rounded-full hover:bg-secondary/90 transition-colors font-body">
+                        <button onClick={checkout} className="bg-secondary text-secondary-foreground font-semibold px-8 py-3 rounded-full hover:bg-secondary/90 transition-colors font-body">
                           Checkout
                         </button>
                       </div>
