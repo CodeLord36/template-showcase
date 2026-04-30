@@ -2,6 +2,7 @@ import { Star, ArrowRight, Heart, Eye, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import QuickViewModal from "./QuickViewModal";
 import { useMedusaProducts, getProductPrice, getProductRating, getProductBadge } from "@/hooks/use-medusa-products";
+import { useShop } from "@/contexts/ShopContext";
 
 type Product = {
   id: number | string;
@@ -63,7 +64,15 @@ const products: Product[] = [
 ];
 
 const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: (p: Product) => void }) => {
-  const [wishlisted, setWishlisted] = useState(false);
+  const { toggleFavourite, isFavourite, addToCart } = useShop();
+  const wishlisted = isFavourite(product.id);
+
+  const shopItem = {
+    id: product.id,
+    title: product.title,
+    price: product.price,
+    type: product.type,
+  };
 
   return (
     <div className="group cursor-pointer">
@@ -90,7 +99,7 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
         {/* Side action icons */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
           <button
-            onClick={(e) => { e.stopPropagation(); setWishlisted(!wishlisted); }}
+            onClick={(e) => { e.stopPropagation(); toggleFavourite(shopItem); }}
             className={`w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center hover:bg-secondary hover:text-secondary-foreground hover:border-secondary transition-all ${wishlisted ? "bg-destructive/10 text-destructive border-destructive/30" : "text-foreground"}`}
             aria-label="Add to wishlist"
           >
@@ -118,7 +127,10 @@ const ProductCard = ({ product, onQuickView }: { product: Product; onQuickView: 
 
         {/* Quick Add button */}
         <div className="absolute bottom-0 left-0 right-0 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 p-3">
-          <button className="w-full bg-background text-foreground text-xs font-semibold py-2.5 rounded-full shadow-lg hover:bg-secondary hover:text-secondary-foreground transition-all flex items-center justify-center gap-2 font-body">
+          <button
+            onClick={(e) => { e.stopPropagation(); addToCart(shopItem); }}
+            className="w-full bg-background text-foreground text-xs font-semibold py-2.5 rounded-full shadow-lg hover:bg-secondary hover:text-secondary-foreground transition-all flex items-center justify-center gap-2 font-body"
+          >
             <ShoppingCart className="h-3.5 w-3.5" />
             Quick Add
           </button>
@@ -233,6 +245,7 @@ const FeaturedProducts = () => {
         open={!!quickViewProduct}
         onClose={() => setQuickViewProduct(null)}
         product={quickViewProduct ? {
+          id: quickViewProduct.id,
           title: quickViewProduct.title,
           price: quickViewProduct.price,
           originalPrice: quickViewProduct.originalPrice,

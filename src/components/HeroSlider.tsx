@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import hero1 from "@/assets/hero-1.jpg";
 import hero2 from "@/assets/hero-2.jpg";
 import hero3 from "@/assets/hero-3.jpg";
@@ -27,6 +29,16 @@ const slides = [
 
 const HeroSlider = () => {
   const [current, setCurrent] = useState(0);
+  const { isAuthenticated, openAuthModal } = useAuth();
+  const navigate = useNavigate();
+
+  const handleCta = () => {
+    if (isAuthenticated) {
+      navigate("/services");
+    } else {
+      openAuthModal("signup", "Create your free account to unlock services, save favourites, and track your journey.");
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -66,12 +78,12 @@ const HeroSlider = () => {
             <br />
             {slide.title[1]}
           </h1>
-          <a
-            href="#services"
+          <button
+            onClick={handleCta}
             className="inline-block bg-background text-foreground font-medium text-sm px-8 py-3.5 rounded-full hover:bg-secondary hover:text-secondary-foreground transition-all duration-300 tracking-wide"
           >
-            {slide.cta}
-          </a>
+            {isAuthenticated ? slide.cta : "Create Free Account"}
+          </button>
         </div>
       </div>
 
