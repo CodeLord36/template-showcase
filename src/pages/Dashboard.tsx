@@ -11,7 +11,7 @@ type Tab = "profile" | "orders" | "cart" | "favourites" | "downloads" | "setting
 
 const Dashboard = () => {
   const { user, isAuthenticated, logout, openAuthModal } = useAuth();
-  const { cart, favourites, removeFromCart, updateQty, toggleFavourite, addToCart, cartSubtotal, clearCart } = useShop();
+  const { cart, favourites, removeFromCart, updateQty, toggleFavourite, addToCart, cartSubtotal, clearCart, checkout } = useShop();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("profile");
 
