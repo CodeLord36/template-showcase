@@ -33,8 +33,7 @@ const Header = () => {
   };
 
   const handleCart = () => {
-    if (isAuthenticated) setCartOpen(true);
-    else openAuthModal("signup", "Create an account to view your cart.");
+    setCartOpen(true);
   };
 
   return (
@@ -96,7 +95,7 @@ const Header = () => {
               aria-label="Cart"
             >
               <ShoppingCart className="h-5 w-5" />
-              {isAuthenticated && cartCount > 0 && (
+              {cartCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-secondary text-secondary-foreground text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {cartCount}
                 </span>
