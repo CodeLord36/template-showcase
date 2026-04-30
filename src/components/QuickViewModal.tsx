@@ -1,10 +1,12 @@
 import { X, Star, Heart, Minus, Plus } from "lucide-react";
 import { useState } from "react";
+import { useShop } from "@/contexts/ShopContext";
 
 interface QuickViewModalProps {
   open: boolean;
   onClose: () => void;
   product?: {
+    id?: string | number;
     title: string;
     price: string;
     originalPrice?: string;
@@ -16,8 +18,18 @@ interface QuickViewModalProps {
 
 const QuickViewModal = ({ open, onClose, product }: QuickViewModalProps) => {
   const [qty, setQty] = useState(1);
+  const { addToCart, toggleFavourite, isFavourite } = useShop();
 
   if (!open || !product) return null;
+  const productId = product.id ?? product.title;
+  const wishlisted = isFavourite(productId);
+
+  const handleAdd = () => {
+    for (let i = 0; i < qty; i++) {
+      addToCart({ id: productId, title: product.title, price: product.price });
+    }
+    onClose();
+  };
 
   return (
     <>
