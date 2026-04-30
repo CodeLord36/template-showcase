@@ -100,12 +100,19 @@ const QuickViewModal = ({ open, onClose, product }: QuickViewModalProps) => {
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
-                  <button className="text-foreground hover:text-destructive transition-colors" aria-label="Add to wishlist">
-                    <Heart className="h-5 w-5" />
+                  <button
+                    onClick={() => toggleFavourite({ id: productId, title: product.title, price: product.price })}
+                    className={`transition-colors ${wishlisted ? "text-destructive" : "text-foreground hover:text-destructive"}`}
+                    aria-label="Add to wishlist"
+                  >
+                    <Heart className={`h-5 w-5 ${wishlisted ? "fill-current" : ""}`} />
                   </button>
                 </div>
 
-                <button className="w-full bg-secondary text-secondary-foreground font-semibold py-3.5 rounded-full hover:bg-secondary/90 transition-colors font-body">
+                <button
+                  onClick={handleAdd}
+                  className="w-full bg-secondary text-secondary-foreground font-semibold py-3.5 rounded-full hover:bg-secondary/90 transition-colors font-body"
+                >
                   Add to Cart
                 </button>
               </div>
