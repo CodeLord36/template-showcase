@@ -245,6 +245,7 @@ const FeaturedProducts = () => {
         open={!!quickViewProduct}
         onClose={() => setQuickViewProduct(null)}
         product={quickViewProduct ? {
+          id: quickViewProduct.id,
           title: quickViewProduct.title,
           price: quickViewProduct.price,
           originalPrice: quickViewProduct.originalPrice,
