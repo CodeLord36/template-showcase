@@ -1,8 +1,10 @@
 import { Search, User, Heart, ShoppingCart, Menu, X } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import SearchOverlay from "./SearchOverlay";
 import CartDrawer from "./CartDrawer";
+import { useAuth } from "@/contexts/AuthContext";
+import { useShop } from "@/contexts/ShopContext";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -16,6 +18,24 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const { isAuthenticated, openAuthModal } = useAuth();
+  const { cartCount, favourites } = useShop();
+  const navigate = useNavigate();
+
+  const handleAccount = () => {
+    if (isAuthenticated) navigate("/dashboard");
+    else openAuthModal("login", "Sign in to access your account.");
+  };
+
+  const handleFavourites = () => {
+    if (isAuthenticated) navigate("/dashboard");
+    else openAuthModal("signup", "Create an account to save favourites.");
+  };
+
+  const handleCart = () => {
+    if (isAuthenticated) setCartOpen(true);
+    else openAuthModal("signup", "Create an account to view your cart.");
+  };
 
   return (
     <>
@@ -59,21 +79,28 @@ const Header = () => {
             >
               <Search className="h-5 w-5" />
             </button>
-            <button className="text-foreground hover:text-secondary transition-colors hidden sm:block" aria-label="Account">
+            <button onClick={handleAccount} className="text-foreground hover:text-secondary transition-colors hidden sm:block" aria-label="Account">
               <User className="h-5 w-5" />
             </button>
-            <button className="text-foreground hover:text-secondary transition-colors hidden sm:block" aria-label="Wishlist">
+            <button onClick={handleFavourites} className="relative text-foreground hover:text-secondary transition-colors hidden sm:block" aria-label="Wishlist">
               <Heart className="h-5 w-5" />
+              {isAuthenticated && favourites.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-secondary text-secondary-foreground text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {favourites.length}
+                </span>
+              )}
             </button>
             <button
-              onClick={() => setCartOpen(true)}
+              onClick={handleCart}
               className="relative text-foreground hover:text-secondary transition-colors"
               aria-label="Cart"
             >
               <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -top-1.5 -right-1.5 bg-secondary text-secondary-foreground text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                2
-              </span>
+              {isAuthenticated && cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-secondary text-secondary-foreground text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
