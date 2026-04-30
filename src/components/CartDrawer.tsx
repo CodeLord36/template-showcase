@@ -86,7 +86,7 @@ const CartDrawer = ({ open, onClose }: CartDrawerProps) => {
             >
               View Cart
             </Link>
-            <button className="w-full bg-secondary text-secondary-foreground font-semibold py-3.5 rounded-full hover:bg-secondary/90 transition-colors font-body">
+            <button onClick={checkout} className="w-full bg-secondary text-secondary-foreground font-semibold py-3.5 rounded-full hover:bg-secondary/90 transition-colors font-body">
               Checkout
             </button>
             <button onClick={onClose} className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors font-body py-2">
