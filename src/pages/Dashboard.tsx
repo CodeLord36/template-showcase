@@ -167,7 +167,7 @@ const Dashboard = () => {
                           <p className="text-sm text-muted-foreground font-body">Subtotal</p>
                           <p className="text-2xl font-bold text-foreground font-body">${cartSubtotal.toFixed(2)}</p>
                         </div>
-                        <button className="bg-secondary text-secondary-foreground font-semibold px-8 py-3 rounded-full hover:bg-secondary/90 transition-colors font-body">
+                        <button onClick={checkout} className="bg-secondary text-secondary-foreground font-semibold px-8 py-3 rounded-full hover:bg-secondary/90 transition-colors font-body">
                           Checkout
                         </button>
                       </div>
