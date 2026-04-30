@@ -21,12 +21,14 @@ type ShopContextType = {
   clearCart: () => void;
   toggleFavourite: (item: ShopItem) => boolean;
   isFavourite: (id: ShopItem["id"]) => boolean;
+  checkout: () => boolean;
   cartCount: number;
   cartSubtotal: number;
 };
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
+const GUEST_CART_KEY = "od_bsb_cart_guest";
 const cartKey = (uid: string) => `od_bsb_cart_${uid}`;
 const favKey = (uid: string) => `od_bsb_fav_${uid}`;
 
@@ -35,30 +37,53 @@ const parsePrice = (p: string): number => {
   return parseFloat(m) || 0;
 };
 
+const readCart = (key: string): CartItem[] => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+
+const mergeCarts = (a: CartItem[], b: CartItem[]): CartItem[] => {
+  const map = new Map<string | number, CartItem>();
+  [...a, ...b].forEach((item) => {
+    const existing = map.get(item.id);
+    if (existing) map.set(item.id, { ...existing, qty: existing.qty + item.qty });
+    else map.set(item.id, { ...item });
+  });
+  return Array.from(map.values());
+};
+
 export const ShopProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated, openAuthModal } = useAuth();
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => readCart(GUEST_CART_KEY));
   const [favourites, setFavourites] = useState<ShopItem[]>([]);
 
-  // Load per-user data
+  // On login: merge guest cart into user cart, clear guest cart. On logout: switch to guest cart.
   useEffect(() => {
-    if (!user) {
-      setCart([]);
+    if (user) {
+      const userCart = readCart(cartKey(user.id));
+      const guestCart = readCart(GUEST_CART_KEY);
+      const merged = mergeCarts(userCart, guestCart);
+      setCart(merged);
+      if (guestCart.length) localStorage.removeItem(GUEST_CART_KEY);
+      try {
+        const f = localStorage.getItem(favKey(user.id));
+        setFavourites(f ? JSON.parse(f) : []);
+      } catch { setFavourites([]); }
+    } else {
+      setCart(readCart(GUEST_CART_KEY));
       setFavourites([]);
-      return;
     }
-    try {
-      const c = localStorage.getItem(cartKey(user.id));
-      const f = localStorage.getItem(favKey(user.id));
-      setCart(c ? JSON.parse(c) : []);
-      setFavourites(f ? JSON.parse(f) : []);
-    } catch { /* ignore */ }
   }, [user]);
 
-  // Persist
+  // Persist cart to the right bucket
   useEffect(() => {
-    if (user) localStorage.setItem(cartKey(user.id), JSON.stringify(cart));
+    const key = user ? cartKey(user.id) : GUEST_CART_KEY;
+    localStorage.setItem(key, JSON.stringify(cart));
   }, [cart, user]);
+
+  // Persist favourites (user-only)
   useEffect(() => {
     if (user) localStorage.setItem(favKey(user.id), JSON.stringify(favourites));
   }, [favourites, user]);
@@ -72,7 +97,6 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
   }, [isAuthenticated, openAuthModal]);
 
   const addToCart = (item: ShopItem) => {
-    if (!requireAuth("Create an account to add items to your cart.")) return false;
     setCart((prev) => {
       const existing = prev.find((c) => c.id === item.id);
       if (existing) {
@@ -107,12 +131,22 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
     return true;
   };
 
+  const checkout = () => {
+    if (cart.length === 0) {
+      toast({ title: "Your cart is empty" });
+      return false;
+    }
+    if (!requireAuth("Create an account to complete your purchase.")) return false;
+    toast({ title: "Proceeding to checkout", description: "Payment integration coming soon." });
+    return true;
+  };
+
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
   const cartSubtotal = cart.reduce((s, c) => s + parsePrice(c.price) * c.qty, 0);
 
   return (
     <ShopContext.Provider
-      value={{ cart, favourites, addToCart, removeFromCart, updateQty, clearCart, toggleFavourite, isFavourite, cartCount, cartSubtotal }}
+      value={{ cart, favourites, addToCart, removeFromCart, updateQty, clearCart, toggleFavourite, isFavourite, checkout, cartCount, cartSubtotal }}
     >
       {children}
     </ShopContext.Provider>
