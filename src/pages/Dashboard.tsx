@@ -9,7 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useShop } from "@/contexts/ShopContext";
 import { toast } from "@/hooks/use-toast";
 import PreferencesModal from "@/components/PreferencesModal";
-import logo from "@/assets/logo.png";
 
 type Tab = "overview" | "blog" | "products" | "cart" | "favourites" | "orders" | "payments" | "documents" | "settings";
 
@@ -106,8 +105,8 @@ const Dashboard = () => {
       <header className="bg-background border-b border-border sticky top-0 z-30">
         <div className="flex items-center justify-between gap-4 px-4 md:px-8 py-4">
           <div className="flex items-center gap-3 min-w-0">
-            <Link to="/" className="flex-shrink-0">
-              <img src={logo} alt="Online Dynamics" className="h-9 w-auto" />
+            <Link to="/" className="flex-shrink-0 font-display text-base font-bold text-foreground hidden md:block">
+              OD&BSB
             </Link>
             <div className="hidden sm:block min-w-0">
               <h1 className="font-display text-lg md:text-xl font-bold text-foreground truncate">
