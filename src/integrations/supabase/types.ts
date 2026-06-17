@@ -1558,6 +1558,36 @@ export type Database = {
           },
         ]
       }
+      paystack_orders: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json
+          paystack_reference: string
+          status: string
+          total: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          paystack_reference: string
+          status?: string
+          total: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          paystack_reference?: string
+          status?: string
+          total?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_reviews: {
         Row: {
           content: string | null
