@@ -78,7 +78,7 @@ type ShopContextType = {
   downloadDocument: (id: string) => void;
   refillDocument: (id: string) => void;
   savePreferences: (prefs: UserPreferences) => void;
-  checkout: () => boolean;
+  checkout: () => Promise<boolean>;
   cartCount: number;
   cartSubtotal: number;
 };
