@@ -1,6 +1,15 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase/client";
+
+declare global {
+  interface Window {
+    PaystackPop?: {
+      resumeTransaction: (accessCode: string) => void;
+    };
+  }
+}
 
 export type ShopItem = {
   id: string | number;
@@ -69,7 +78,7 @@ type ShopContextType = {
   downloadDocument: (id: string) => void;
   refillDocument: (id: string) => void;
   savePreferences: (prefs: UserPreferences) => void;
-  checkout: () => boolean;
+  checkout: () => Promise<boolean>;
   cartCount: number;
   cartSubtotal: number;
 };
@@ -271,14 +280,75 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: "Preferences saved", description: "We'll personalize your recommendations." });
   };
 
-  const checkout = () => {
+  const checkout = async (): Promise<boolean> => {
     if (cart.length === 0) {
       toast({ title: "Your cart is empty" });
       return false;
     }
     if (!requireAuth("Create an account to complete your purchase.")) return false;
-    toast({ title: "Proceeding to checkout", description: "Payment integration coming soon." });
-    return true;
+    if (!user) return false;
+
+    if (typeof window === "undefined" || !window.PaystackPop) {
+      toast({ title: "Payment unavailable", description: "Paystack failed to load. Refresh and try again.", variant: "destructive" });
+      return false;
+    }
+
+    const total = cartSubtotal;
+    const itemsSnapshot = cart.map((c) => ({ id: c.id, title: c.title, qty: c.qty, price: parsePrice(c.price) }));
+
+    try {
+      const { data: initData, error: initErr } = await supabase.functions.invoke("paystack/initialize", {
+        method: "POST",
+        body: { amount: total, email: user.email, currency: "NGN", metadata: { items: itemsSnapshot } },
+      });
+      if (initErr || !initData?.access_code) {
+        toast({ title: "Could not start payment", description: initErr?.message ?? "Please try again.", variant: "destructive" });
+        return false;
+      }
+
+      const { access_code, reference } = initData as { access_code: string; reference: string };
+
+      await new Promise<void>((resolve) => {
+        const handler = window.PaystackPop!;
+        // Paystack Inline opens its modal; flow returns to our callback URL on completion.
+        // We poll/verify on resolution by listening for window focus after the modal opens.
+        handler.resumeTransaction(access_code);
+        const onFocus = () => {
+          window.removeEventListener("focus", onFocus);
+          resolve();
+        };
+        // Give the modal a moment before attaching focus listener.
+        setTimeout(() => window.addEventListener("focus", onFocus), 1000);
+      });
+
+      // Verify
+      const { data: verifyData, error: verifyErr } = await supabase.functions.invoke(
+        `paystack/verify?reference=${encodeURIComponent(reference)}`,
+        { method: "GET" },
+      );
+      if (verifyErr || verifyData?.status !== "success") {
+        toast({ title: "Payment not completed", description: "We couldn't confirm your payment.", variant: "destructive" });
+        return false;
+      }
+
+      const { error: insertErr } = await supabase.from("paystack_orders").insert({
+        user_id: user.id,
+        total,
+        paystack_reference: reference,
+        status: "paid",
+        metadata: { items: itemsSnapshot },
+      });
+      if (insertErr) {
+        toast({ title: "Order saved partially", description: insertErr.message, variant: "destructive" });
+      }
+
+      setCart([]);
+      toast({ title: "Payment successful", description: `Reference: ${reference}` });
+      return true;
+    } catch (e) {
+      toast({ title: "Checkout error", description: (e as Error).message, variant: "destructive" });
+      return false;
+    }
   };
 
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
