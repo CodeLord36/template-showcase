@@ -1,0 +1,99 @@
+// Paystack webhook — verifies signature with PAYSTACK_SECRET_KEY and
+// idempotently marks paystack_orders rows as "paid" on charge.success.
+//
+// IMPORTANT: this function must be public (no JWT). Paystack will not send a
+// Supabase access token. The supabase/config.toml entry below sets verify_jwt = false.
+
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { createHmac } from "node:crypto";
+
+const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
+});
+
+Deno.serve(async (req) => {
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  const signature = req.headers.get("x-paystack-signature");
+  const rawBody = await req.text();
+
+  if (!signature) {
+    return new Response(JSON.stringify({ error: "Missing signature" }), { status: 401 });
+  }
+
+  const expected = createHmac("sha512", PAYSTACK_SECRET_KEY).update(rawBody).digest("hex");
+  if (expected !== signature) {
+    console.warn("paystack-webhook: invalid signature");
+    return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401 });
+  }
+
+  let event: { event?: string; data?: { reference?: string; amount?: number; metadata?: Record<string, unknown> } };
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
+  }
+
+  // Always respond 200 quickly so Paystack doesn't retry storms.
+  // Handle known events; ignore the rest.
+  if (event.event !== "charge.success") {
+    return new Response(JSON.stringify({ received: true, ignored: event.event }), { status: 200 });
+  }
+
+  const reference = event.data?.reference;
+  if (!reference) {
+    return new Response(JSON.stringify({ error: "Missing reference" }), { status: 400 });
+  }
+
+  try {
+    // Idempotency: fetch the order first
+    const { data: order, error: fetchErr } = await admin
+      .from("paystack_orders")
+      .select("id, user_id, status, metadata")
+      .eq("paystack_reference", reference)
+      .maybeSingle();
+
+    if (fetchErr) {
+      console.error("paystack-webhook: fetch error", fetchErr);
+      return new Response(JSON.stringify({ error: "DB error" }), { status: 500 });
+    }
+
+    if (!order) {
+      // Order row may not exist yet if the frontend insert hasn't completed.
+      // Acknowledge so Paystack stops retrying; the client-side verify path will reconcile.
+      console.warn("paystack-webhook: no order for reference", reference);
+      return new Response(JSON.stringify({ received: true, note: "order not found" }), { status: 200 });
+    }
+
+    if (order.status === "paid") {
+      return new Response(JSON.stringify({ received: true, idempotent: true }), { status: 200 });
+    }
+
+    const { error: updateErr } = await admin
+      .from("paystack_orders")
+      .update({ status: "paid" })
+      .eq("id", order.id)
+      .eq("status", "pending"); // guard against concurrent updates
+
+    if (updateErr) {
+      console.error("paystack-webhook: update error", updateErr);
+      return new Response(JSON.stringify({ error: "Update failed" }), { status: 500 });
+    }
+
+    // NOTE: a `documents` table does not exist in this project. Digital download
+    // entitlements live in `customer_downloads`, which requires a product_id /
+    // digital_product_id / order_item_id that paystack_orders does not currently
+    // track. Once the order metadata includes those IDs, insert the row here.
+
+    return new Response(JSON.stringify({ received: true, updated: true }), { status: 200 });
+  } catch (err) {
+    console.error("paystack-webhook: unexpected error", err);
+    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500 });
+  }
+});
