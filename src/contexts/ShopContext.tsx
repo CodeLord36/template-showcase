@@ -3,10 +3,22 @@ import { useAuth } from "./AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
 
+type PaystackSetupOptions = {
+  key: string;
+  email: string;
+  amount: number; // in kobo/cents
+  ref: string;
+  currency?: string;
+  callback: (response: { reference: string }) => void;
+  onClose: () => void;
+};
+
+type PaystackHandler = { openIframe: () => void };
+
 declare global {
   interface Window {
     PaystackPop?: {
-      resumeTransaction: (accessCode: string) => void;
+      setup: (options: PaystackSetupOptions) => PaystackHandler;
     };
   }
 }
