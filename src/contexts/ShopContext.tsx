@@ -3,10 +3,22 @@ import { useAuth } from "./AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
 
+type PaystackSetupOptions = {
+  key: string;
+  email: string;
+  amount: number; // in kobo/cents
+  ref: string;
+  currency?: string;
+  callback: (response: { reference: string }) => void;
+  onClose: () => void;
+};
+
+type PaystackHandler = { openIframe: () => void };
+
 declare global {
   interface Window {
     PaystackPop?: {
-      resumeTransaction: (accessCode: string) => void;
+      setup: (options: PaystackSetupOptions) => PaystackHandler;
     };
   }
 }
@@ -293,6 +305,12 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
 
+    const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string | undefined;
+    if (!publicKey) {
+      toast({ title: "Payment not configured", description: "Missing VITE_PAYSTACK_PUBLIC_KEY.", variant: "destructive" });
+      return false;
+    }
+
     const total = cartSubtotal;
     const itemsSnapshot = cart.map((c) => ({ id: c.id, title: c.title, qty: c.qty, price: parsePrice(c.price) }));
 
@@ -301,50 +319,54 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
         method: "POST",
         body: { amount: total, email: user.email, currency: "NGN", metadata: { items: itemsSnapshot } },
       });
-      if (initErr || !initData?.access_code) {
+      if (initErr || !initData?.reference) {
         toast({ title: "Could not start payment", description: initErr?.message ?? "Please try again.", variant: "destructive" });
         return false;
       }
 
-      const { access_code, reference } = initData as { access_code: string; reference: string };
+      const { reference } = initData as { reference: string };
 
-      await new Promise<void>((resolve) => {
-        const handler = window.PaystackPop!;
-        // Paystack Inline opens its modal; flow returns to our callback URL on completion.
-        // We poll/verify on resolution by listening for window focus after the modal opens.
-        handler.resumeTransaction(access_code);
-        const onFocus = () => {
-          window.removeEventListener("focus", onFocus);
-          resolve();
-        };
-        // Give the modal a moment before attaching focus listener.
-        setTimeout(() => window.addEventListener("focus", onFocus), 1000);
+      return await new Promise<boolean>((resolve) => {
+        const handler = window.PaystackPop!.setup({
+          key: publicKey,
+          email: user.email!,
+          amount: Math.round(total * 100), // kobo
+          ref: reference,
+          currency: "NGN",
+          callback: (response) => {
+            // Verify + persist in background
+            (async () => {
+              const { data: verifyData, error: verifyErr } = await supabase.functions.invoke(
+                `paystack/verify?reference=${encodeURIComponent(response.reference)}`,
+                { method: "GET" },
+              );
+              if (verifyErr || verifyData?.status !== "success") {
+                toast({ title: "Payment not completed", description: "We couldn't confirm your payment.", variant: "destructive" });
+                resolve(false);
+                return;
+              }
+              const { error: insertErr } = await supabase.from("paystack_orders").insert({
+                user_id: user.id,
+                total,
+                paystack_reference: response.reference,
+                status: "paid",
+                metadata: { items: itemsSnapshot },
+              });
+              if (insertErr) {
+                toast({ title: "Order saved partially", description: insertErr.message, variant: "destructive" });
+              }
+              setCart([]);
+              toast({ title: "Payment successful", description: `Reference: ${response.reference}` });
+              resolve(true);
+            })();
+          },
+          onClose: () => {
+            toast({ title: "Payment cancelled" });
+            resolve(false);
+          },
+        });
+        handler.openIframe();
       });
-
-      // Verify
-      const { data: verifyData, error: verifyErr } = await supabase.functions.invoke(
-        `paystack/verify?reference=${encodeURIComponent(reference)}`,
-        { method: "GET" },
-      );
-      if (verifyErr || verifyData?.status !== "success") {
-        toast({ title: "Payment not completed", description: "We couldn't confirm your payment.", variant: "destructive" });
-        return false;
-      }
-
-      const { error: insertErr } = await supabase.from("paystack_orders").insert({
-        user_id: user.id,
-        total,
-        paystack_reference: reference,
-        status: "paid",
-        metadata: { items: itemsSnapshot },
-      });
-      if (insertErr) {
-        toast({ title: "Order saved partially", description: insertErr.message, variant: "destructive" });
-      }
-
-      setCart([]);
-      toast({ title: "Payment successful", description: `Reference: ${reference}` });
-      return true;
     } catch (e) {
       toast({ title: "Checkout error", description: (e as Error).message, variant: "destructive" });
       return false;
