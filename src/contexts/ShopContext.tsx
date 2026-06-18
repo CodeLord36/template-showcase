@@ -1,6 +1,15 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase/client";
+
+declare global {
+  interface Window {
+    PaystackPop?: {
+      resumeTransaction: (accessCode: string) => void;
+    };
+  }
+}
 
 export type ShopItem = {
   id: string | number;
