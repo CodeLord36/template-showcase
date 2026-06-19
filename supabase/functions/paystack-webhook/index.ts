@@ -87,19 +87,31 @@ Deno.serve(async (req) => {
     }
 
     // Create download entitlements from order metadata
-    const items = (order.metadata as { items?: Array<{ id?: string; title?: string; file_url?: string }> })?.items ?? [];
+    type CartItem = {
+      id?: string | number;
+      product_id?: string | null;
+      title?: string;
+      file_name?: string;
+      file_url?: string | null;
+      qty?: number;
+      max_downloads?: number;
+    };
+    const items = (order.metadata as { items?: CartItem[] })?.items ?? [];
     const isUuid = (v: unknown): v is string =>
       typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
     if (items.length > 0) {
-      const rows = items.map((item) => ({
-        user_id: order.user_id,
-        order_id: order.id,
-        product_id: isUuid(item.id) ? item.id : null,
-        file_name: item.title ?? "Download",
-        file_url: item.file_url ?? "",
-        max_downloads: 5,
-      }));
+      const rows = items.map((item) => {
+        const productId = isUuid(item.product_id) ? item.product_id : isUuid(item.id) ? String(item.id) : null;
+        return {
+          user_id: order.user_id,
+          order_id: order.id,
+          product_id: productId,
+          file_name: item.file_name ?? item.title ?? "Download",
+          file_url: item.file_url ?? "",
+          max_downloads: item.max_downloads ?? 5,
+        };
+      });
       const { error: docsErr } = await admin.from("documents").insert(rows);
       if (docsErr) {
         console.error("paystack-webhook: documents insert error", docsErr);

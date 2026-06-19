@@ -8,7 +8,17 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useShop } from "@/contexts/ShopContext";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase/client";
 import PreferencesModal from "@/components/PreferencesModal";
+
+type PaystackDocument = {
+  id: string;
+  file_name: string;
+  file_url: string;
+  download_count: number;
+  max_downloads: number;
+  created_at: string;
+};
 
 type Tab = "overview" | "blog" | "products" | "cart" | "favourites" | "orders" | "payments" | "documents" | "settings";
 
@@ -551,54 +561,154 @@ const PaymentsPanel = ({ payments }: any) => (
   </div>
 );
 
-const DocumentsPanel = ({ documents, downloadDocument, refillDocument }: any) => (
-  <div>
-    <div className="mb-6">
-      <h2 className="font-display text-2xl font-bold text-foreground">My Documents</h2>
-      <p className="text-sm text-muted-foreground font-body">Each document includes 5 downloads. Top up access when you run out.</p>
-    </div>
-    {documents.length === 0 ? (
-      <EmptyState icon={FileText} title="No documents yet" description="Purchased digital products will appear here." />
-    ) : (
-      <div className="grid sm:grid-cols-2 gap-4">
-        {documents.map((d: any) => {
-          const remaining = d.downloadLimit - d.downloadsUsed;
-          const exhausted = remaining <= 0;
-          const pct = (d.downloadsUsed / d.downloadLimit) * 100;
-          return (
-            <div key={d.id} className="bg-background border border-border rounded-xl p-5">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center flex-shrink-0 text-xl">📄</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-body font-semibold text-foreground">{d.title}</p>
-                  <p className="text-[11px] text-muted-foreground font-body">Purchased {new Date(d.purchasedAt).toLocaleDateString()}</p>
-                </div>
-              </div>
-              <div className="mb-3">
-                <div className="flex items-center justify-between text-xs font-body mb-1">
-                  <span className="text-muted-foreground">Downloads used</span>
-                  <span className={`font-semibold ${exhausted ? "text-destructive" : "text-foreground"}`}>{d.downloadsUsed} / {d.downloadLimit}</span>
-                </div>
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div className={`h-full ${exhausted ? "bg-destructive" : "bg-secondary"} transition-all`} style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-              {exhausted ? (
-                <button onClick={() => refillDocument(d.id)} className="w-full bg-foreground text-background text-sm font-semibold py-2.5 rounded-full font-body flex items-center justify-center gap-2">
-                  <RefreshCw className="h-3.5 w-3.5" /> Top up access · {d.refillPrice}
-                </button>
-              ) : (
-                <button onClick={() => downloadDocument(d.id)} className="w-full bg-secondary text-secondary-foreground text-sm font-semibold py-2.5 rounded-full hover:bg-secondary/90 font-body flex items-center justify-center gap-2">
-                  <Download className="h-3.5 w-3.5" /> Download ({remaining} left)
-                </button>
-              )}
-            </div>
-          );
-        })}
+const DocumentsPanel = ({ documents, downloadDocument, refillDocument }: any) => {
+  const { user } = useAuth();
+  const [liveDocs, setLiveDocs] = useState<PaystackDocument[]>([]);
+  const [loadingLive, setLoadingLive] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingLive(true);
+      const { data, error } = await supabase
+        .from("documents")
+        .select("id, file_name, file_url, download_count, max_downloads, created_at")
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        toast({ title: "Couldn't load documents", description: error.message, variant: "destructive" });
+      } else {
+        setLiveDocs((data ?? []) as PaystackDocument[]);
+      }
+      setLoadingLive(false);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  const handleLiveDownload = async (doc: PaystackDocument) => {
+    const remaining = doc.max_downloads - doc.download_count;
+    if (remaining <= 0) {
+      toast({ title: "No downloads left", description: "You've used your download quota for this file." });
+      return;
+    }
+    if (!doc.file_url) {
+      toast({ title: "File not available yet", description: "Your purchase is confirmed but the file link is missing.", variant: "destructive" });
+      return;
+    }
+    // Optimistic increment + RLS-protected update
+    const nextCount = doc.download_count + 1;
+    setLiveDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, download_count: nextCount } : d));
+    const { error } = await supabase
+      .from("documents")
+      .update({ download_count: nextCount })
+      .eq("id", doc.id);
+    if (error) {
+      setLiveDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, download_count: doc.download_count } : d));
+      toast({ title: "Download blocked", description: error.message, variant: "destructive" });
+      return;
+    }
+    window.open(doc.file_url, "_blank", "noopener,noreferrer");
+    toast({ title: "Download started", description: `${doc.max_downloads - nextCount} downloads remaining.` });
+  };
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="font-display text-2xl font-bold text-foreground">My Documents</h2>
+        <p className="text-sm text-muted-foreground font-body">Files from your purchases. Each document includes a download quota.</p>
       </div>
-    )}
-  </div>
-);
+
+      {/* Live purchased documents from Paystack orders */}
+      <section className="mb-8">
+        <h3 className="font-display text-base font-bold text-foreground mb-3">Purchased downloads</h3>
+        {loadingLive ? (
+          <div className="bg-background border border-border rounded-xl p-8 text-center text-sm text-muted-foreground font-body">Loading…</div>
+        ) : liveDocs.length === 0 ? (
+          <EmptyState icon={FileText} title="No purchased downloads yet" description="Files from completed Paystack orders will appear here." />
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-4">
+            {liveDocs.map((d) => {
+              const remaining = d.max_downloads - d.download_count;
+              const exhausted = remaining <= 0;
+              const pct = (d.download_count / d.max_downloads) * 100;
+              return (
+                <div key={d.id} className="bg-background border border-border rounded-xl p-5">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center flex-shrink-0 text-xl">📄</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body font-semibold text-foreground truncate">{d.file_name}</p>
+                      <p className="text-[11px] text-muted-foreground font-body">Purchased {new Date(d.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs font-body mb-1">
+                      <span className="text-muted-foreground">Downloads used</span>
+                      <span className={`font-semibold ${exhausted ? "text-destructive" : "text-foreground"}`}>{d.download_count} / {d.max_downloads}</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full ${exhausted ? "bg-destructive" : "bg-secondary"} transition-all`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleLiveDownload(d)}
+                    disabled={exhausted}
+                    className="w-full bg-secondary text-secondary-foreground text-sm font-semibold py-2.5 rounded-full hover:bg-secondary/90 font-body flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Download className="h-3.5 w-3.5" /> {exhausted ? "Quota reached" : `Download (${remaining} left)`}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Legacy / sample documents (local state) */}
+      {documents.length > 0 && (
+        <section>
+          <h3 className="font-display text-base font-bold text-foreground mb-3">Sample documents</h3>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {documents.map((d: any) => {
+              const remaining = d.downloadLimit - d.downloadsUsed;
+              const exhausted = remaining <= 0;
+              const pct = (d.downloadsUsed / d.downloadLimit) * 100;
+              return (
+                <div key={d.id} className="bg-background border border-border rounded-xl p-5">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center flex-shrink-0 text-xl">📄</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body font-semibold text-foreground">{d.title}</p>
+                      <p className="text-[11px] text-muted-foreground font-body">Purchased {new Date(d.purchasedAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs font-body mb-1">
+                      <span className="text-muted-foreground">Downloads used</span>
+                      <span className={`font-semibold ${exhausted ? "text-destructive" : "text-foreground"}`}>{d.downloadsUsed} / {d.downloadLimit}</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full ${exhausted ? "bg-destructive" : "bg-secondary"} transition-all`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                  {exhausted ? (
+                    <button onClick={() => refillDocument(d.id)} className="w-full bg-foreground text-background text-sm font-semibold py-2.5 rounded-full font-body flex items-center justify-center gap-2">
+                      <RefreshCw className="h-3.5 w-3.5" /> Top up access · {d.refillPrice}
+                    </button>
+                  ) : (
+                    <button onClick={() => downloadDocument(d.id)} className="w-full bg-secondary text-secondary-foreground text-sm font-semibold py-2.5 rounded-full hover:bg-secondary/90 font-body flex items-center justify-center gap-2">
+                      <Download className="h-3.5 w-3.5" /> Download ({remaining} left)
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+};
 
 const SettingsPanel = ({ onEditPrefs, preferences }: any) => (
   <div>

@@ -29,6 +29,12 @@ export type ShopItem = {
   price: string;
   image?: string;
   type?: "digital" | "service";
+  /** UUID of the matching row in `products`. Optional for legacy/mock items. */
+  product_id?: string;
+  /** Display filename used when creating a download entitlement. */
+  file_name?: string;
+  /** URL the user will download after purchase. */
+  file_url?: string;
 };
 
 export type CartItem = ShopItem & { qty: number };
@@ -312,7 +318,15 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const total = cartSubtotal;
-    const itemsSnapshot = cart.map((c) => ({ id: c.id, title: c.title, qty: c.qty, price: parsePrice(c.price) }));
+    const itemsSnapshot = cart.map((c) => ({
+      id: c.id,
+      product_id: c.product_id ?? null,
+      title: c.title,
+      file_name: c.file_name ?? c.title,
+      file_url: c.file_url ?? null,
+      qty: c.qty,
+      price: parsePrice(c.price),
+    }));
 
     try {
       const { data: initData, error: initErr } = await supabase.functions.invoke("paystack/initialize", {
