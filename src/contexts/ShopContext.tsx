@@ -29,6 +29,12 @@ export type ShopItem = {
   price: string;
   image?: string;
   type?: "digital" | "service";
+  /** UUID of the matching row in `products`. Optional for legacy/mock items. */
+  product_id?: string;
+  /** Display filename used when creating a download entitlement. */
+  file_name?: string;
+  /** URL the user will download after purchase. */
+  file_url?: string;
 };
 
 export type CartItem = ShopItem & { qty: number };
