@@ -86,10 +86,27 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Update failed" }), { status: 500 });
     }
 
-    // NOTE: a `documents` table does not exist in this project. Digital download
-    // entitlements live in `customer_downloads`, which requires a product_id /
-    // digital_product_id / order_item_id that paystack_orders does not currently
-    // track. Once the order metadata includes those IDs, insert the row here.
+    // Create download entitlements from order metadata
+    const items = (order.metadata as { items?: Array<{ id?: string; title?: string; file_url?: string }> })?.items ?? [];
+    const isUuid = (v: unknown): v is string =>
+      typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
+    if (items.length > 0) {
+      const rows = items.map((item) => ({
+        user_id: order.user_id,
+        order_id: order.id,
+        product_id: isUuid(item.id) ? item.id : null,
+        file_name: item.title ?? "Download",
+        file_url: item.file_url ?? "",
+        max_downloads: 5,
+      }));
+      const { error: docsErr } = await admin.from("documents").insert(rows);
+      if (docsErr) {
+        console.error("paystack-webhook: documents insert error", docsErr);
+        // Don't fail the webhook — order is paid; entitlement can be reconciled.
+      }
+    }
+
 
     return new Response(JSON.stringify({ received: true, updated: true }), { status: 200 });
   } catch (err) {

@@ -1063,6 +1063,78 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          created_at: string
+          download_count: number
+          file_name: string
+          file_url: string
+          id: string
+          max_downloads: number
+          order_id: string | null
+          product_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          download_count?: number
+          file_name: string
+          file_url: string
+          id?: string
+          max_downloads?: number
+          order_id?: string | null
+          product_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          download_count?: number
+          file_name?: string
+          file_url?: string
+          id?: string
+          max_downloads?: number
+          order_id?: string | null
+          product_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "paystack_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "documents_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_status"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "documents_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_popular_products_by_country"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "documents_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_performance"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
       enquiries: {
         Row: {
           assigned_to: string | null
