@@ -8,7 +8,17 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useShop } from "@/contexts/ShopContext";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase/client";
 import PreferencesModal from "@/components/PreferencesModal";
+
+type PaystackDocument = {
+  id: string;
+  file_name: string;
+  file_url: string;
+  download_count: number;
+  max_downloads: number;
+  created_at: string;
+};
 
 type Tab = "overview" | "blog" | "products" | "cart" | "favourites" | "orders" | "payments" | "documents" | "settings";
 
