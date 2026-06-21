@@ -90,7 +90,7 @@ export default function AdminProducts() {
     if (editing) {
       ({ error } = await supabase.from("products").update(payload).eq("product_id", editing.product_id));
     } else {
-      ({ error } = await supabase.from("products").insert({ ...payload, slug: slugify(form.name), type: "digital" }));
+      ({ error } = await supabase.from("products").insert({ ...payload, slug: slugify(form.name), sku: `SKU-${Date.now()}`, type: "digital" }));
     }
     setSaving(false);
     if (error) { toast.error(error.message); return; }
