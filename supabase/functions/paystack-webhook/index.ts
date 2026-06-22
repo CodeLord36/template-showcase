@@ -119,6 +119,35 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fire-and-forget: send order confirmation email
+    try {
+      const meta = (order.metadata ?? {}) as { email?: string; customer_email?: string; total?: number; currency?: string };
+      const toEmail = meta.email ?? meta.customer_email ?? null;
+      if (toEmail) {
+        const totalKobo = event.data?.amount ?? 0;
+        const total = meta.total ?? totalKobo / 100;
+        await fetch(`${SUPABASE_URL}/functions/v1/send-order-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+          body: JSON.stringify({
+            to_email: toEmail,
+            order_id: order.id,
+            total,
+            currency: meta.currency ?? "NGN",
+            items,
+          }),
+        });
+      } else {
+        console.warn("paystack-webhook: no email in order metadata, skipping email");
+      }
+    } catch (emailErr) {
+      console.error("paystack-webhook: email send error", emailErr);
+    }
+
+
 
     return new Response(JSON.stringify({ received: true, updated: true }), { status: 200 });
   } catch (err) {
