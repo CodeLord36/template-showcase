@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AnnouncementBar from "@/components/AnnouncementBar";
+import SEO from "@/components/SEO";
 import { Star, ShoppingCart, Heart, Eye, Filter, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { useMedusaProducts, getProductPrice, getProductRating, getProductBadge } from "@/hooks/use-medusa-products";
