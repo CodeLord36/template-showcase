@@ -174,8 +174,14 @@ const Services = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Products & Services – The Digital Desk"
+        description="Browse digital guides, consultations, and migration services to power your study-abroad journey."
+        url="/services"
+      />
       <AnnouncementBar />
       <Header />
+
 
       {/* Hero Banner */}
       <section className="bg-primary py-16 md:py-24">

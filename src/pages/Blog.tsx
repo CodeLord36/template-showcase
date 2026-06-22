@@ -76,8 +76,14 @@ const Blog = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Blog – Study Abroad Tips & Updates"
+        description="Expert insights on study abroad, visa applications, migration pathways, and scholarship opportunities."
+        url="/blog"
+      />
       <AnnouncementBar />
       <Header />
+
 
       {/* Hero */}
       <section className="bg-primary py-16 md:py-24">

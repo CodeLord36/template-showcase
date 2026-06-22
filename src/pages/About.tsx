@@ -54,8 +54,14 @@ const team = [
 const About = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="About Us – The Digital Desk"
+        description="Learn about The Digital Desk — our mission to simplify study abroad, migration, and global mobility for everyone."
+        url="/about"
+      />
       <AnnouncementBar />
       <Header />
+
 
       {/* Hero */}
       <section className="bg-primary py-16 md:py-24">
