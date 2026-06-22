@@ -695,14 +695,27 @@ const DocumentsPanel = ({ documents, downloadDocument, refillDocument, orderFilt
 
       {/* Live purchased documents from Paystack orders */}
       <section className="mb-8">
-        <h3 className="font-display text-base font-bold text-foreground mb-3">Purchased downloads</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display text-base font-bold text-foreground">Purchased downloads</h3>
+          {orderFilter && (
+            <button
+              onClick={clearOrderFilter}
+              className="text-xs font-body text-secondary hover:underline"
+            >
+              Showing order {orderFilter.slice(0, 8)}… · Clear filter
+            </button>
+          )}
+        </div>
         {loadingLive ? (
           <div className="bg-background border border-border rounded-xl p-8 text-center text-sm text-muted-foreground font-body">Loading…</div>
-        ) : liveDocs.length === 0 ? (
-          <EmptyState icon={FileText} title="No purchased downloads yet" description="Files from completed Paystack orders will appear here." />
-        ) : (
+        ) : (() => {
+          const filtered = orderFilter ? liveDocs.filter((d) => d.order_id === orderFilter) : liveDocs;
+          if (filtered.length === 0) {
+            return <EmptyState icon={FileText} title={orderFilter ? "No documents for this order" : "No purchased downloads yet"} description={orderFilter ? "This order has no document entitlements attached." : "Files from completed Paystack orders will appear here."} />;
+          }
+          return (
           <div className="grid sm:grid-cols-2 gap-4">
-            {liveDocs.map((d) => {
+            {filtered.map((d) => {
               const remaining = d.max_downloads - d.download_count;
               const exhausted = remaining <= 0;
               const pct = (d.download_count / d.max_downloads) * 100;
