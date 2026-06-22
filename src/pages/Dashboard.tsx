@@ -118,6 +118,11 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-surface-warm">
+      <SEO
+        title="My Dashboard – The Digital Desk"
+        description="Manage your orders, downloads, and preferences in your Digital Desk dashboard."
+        url="/dashboard"
+      />
       {/* Top welcome bar (replaces site header on /dashboard) */}
       <header className="bg-background border-b border-border sticky top-0 z-30">
         <div className="flex items-center justify-between gap-4 px-4 md:px-8 py-4">
@@ -496,41 +501,102 @@ const FavouritesPanel = ({ favourites, addToCart, toggleFavourite, recentlyViewe
   </div>
 );
 
-const OrdersPanel = ({ orders }: any) => (
-  <div>
-    <h2 className="font-display text-2xl font-bold text-foreground mb-6">Orders</h2>
-    {orders.length === 0 ? (
-      <EmptyState icon={Package} title="No orders yet" description="Your past orders will show up here." />
-    ) : (
-      <div className="space-y-3">
-        {orders.map((o: any) => (
-          <div key={o.id} className="bg-background border border-border rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="font-body font-semibold text-foreground">{o.id}</p>
-                <p className="text-xs text-muted-foreground font-body">{new Date(o.date).toLocaleDateString()}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-body font-bold text-foreground">${o.total.toFixed(2)}</p>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary/15 text-secondary font-body">
-                  <Check className="h-3 w-3" /> {o.status}
-                </span>
-              </div>
-            </div>
-            <div className="space-y-1 pt-3 border-t border-border">
-              {o.items.map((it: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between text-sm font-body text-foreground">
-                  <span>{it.qty}× {it.title}</span>
-                  <span className="text-muted-foreground">${it.price.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-);
+type PaystackOrderRow = {
+  id: string;
+  status: string;
+  created_at: string;
+  paystack_reference: string | null;
+  metadata: { items?: any[]; total?: number; currency?: string; email?: string } | null;
+};
+
+const statusBadgeClass = (status: string) => {
+  switch (status) {
+    case "paid": return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    case "delivered": return "bg-blue-100 text-blue-700 border-blue-200";
+    case "pending": return "bg-amber-100 text-amber-700 border-amber-200";
+    case "failed": return "bg-rose-100 text-rose-700 border-rose-200";
+    default: return "bg-muted text-muted-foreground border-border";
+  }
+};
+
+const OrdersPanel = ({ onViewDocs }: { onViewDocs: (orderId: string) => void }) => {
+  const { user } = useAuth();
+  const [rows, setRows] = useState<PaystackOrderRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("paystack_orders")
+        .select("id, status, created_at, paystack_reference, metadata")
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        toast({ title: "Couldn't load orders", description: error.message, variant: "destructive" });
+      } else {
+        setRows((data ?? []) as PaystackOrderRow[]);
+      }
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  return (
+    <div>
+      <h2 className="font-display text-2xl font-bold text-foreground mb-6">Orders</h2>
+      {loading ? (
+        <div className="bg-background border border-border rounded-xl p-8 text-center text-sm text-muted-foreground font-body">Loading…</div>
+      ) : rows.length === 0 ? (
+        <EmptyState icon={Package} title="No orders yet" description="Your past orders will show up here." />
+      ) : (
+        <div className="bg-background border border-border rounded-xl overflow-hidden">
+          <table className="w-full text-sm font-body">
+            <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-left px-4 py-3">Order ID</th>
+                <th className="text-left px-4 py-3">Date</th>
+                <th className="text-right px-4 py-3">Total</th>
+                <th className="text-center px-4 py-3">Status</th>
+                <th className="text-right px-4 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((o) => {
+                const currency = o.metadata?.currency ?? "NGN";
+                const total = o.metadata?.total ?? 0;
+                const fmt = new Intl.NumberFormat("en-NG", { style: "currency", currency }).format(total);
+                return (
+                  <tr key={o.id} className="border-t border-border">
+                    <td className="px-4 py-3 text-foreground font-mono text-xs">{o.id.slice(0, 8)}…</td>
+                    <td className="px-4 py-3 text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-right text-foreground font-semibold">{fmt}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border ${statusBadgeClass(o.status)}`}>
+                        {o.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => onViewDocs(o.id)}
+                        className="text-xs font-semibold text-secondary hover:underline font-body inline-flex items-center gap-1"
+                      >
+                        <FileText className="h-3 w-3" /> View documents
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 const PaymentsPanel = ({ payments }: any) => (
   <div>
