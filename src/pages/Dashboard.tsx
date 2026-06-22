@@ -10,6 +10,7 @@ import { useShop } from "@/contexts/ShopContext";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase/client";
 import PreferencesModal from "@/components/PreferencesModal";
+import SEO from "@/components/SEO";
 
 type PaystackDocument = {
   id: string;
@@ -50,6 +51,12 @@ const Dashboard = () => {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const [docsOrderFilter, setDocsOrderFilter] = useState<string | null>(null);
+
+  const goToOrderDocs = (orderId: string) => {
+    setDocsOrderFilter(orderId);
+    setTab("documents");
+  };
 
   // Auth gate
   useEffect(() => {
@@ -177,11 +184,11 @@ const Dashboard = () => {
 
           {tab === "favourites" && <FavouritesPanel favourites={favourites} addToCart={addToCart} toggleFavourite={toggleFavourite} recentlyViewed={recentlyViewed} />}
 
-          {tab === "orders" && <OrdersPanel orders={orders} />}
+          {tab === "orders" && <OrdersPanel onViewDocs={goToOrderDocs} />}
 
           {tab === "payments" && <PaymentsPanel payments={payments} />}
 
-          {tab === "documents" && <DocumentsPanel documents={documents} downloadDocument={downloadDocument} refillDocument={refillDocument} />}
+          {tab === "documents" && <DocumentsPanel documents={documents} downloadDocument={downloadDocument} refillDocument={refillDocument} orderFilter={docsOrderFilter} clearOrderFilter={() => setDocsOrderFilter(null)} />}
 
           {tab === "settings" && <SettingsPanel onEditPrefs={() => setPrefsOpen(true)} preferences={preferences} />}
         </main>
