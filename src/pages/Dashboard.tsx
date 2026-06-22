@@ -19,6 +19,7 @@ type PaystackDocument = {
   download_count: number;
   max_downloads: number;
   created_at: string;
+  order_id: string | null;
 };
 
 type Tab = "overview" | "blog" | "products" | "cart" | "favourites" | "orders" | "payments" | "documents" | "settings";
@@ -634,7 +635,7 @@ const PaymentsPanel = ({ payments }: any) => (
   </div>
 );
 
-const DocumentsPanel = ({ documents, downloadDocument, refillDocument }: any) => {
+const DocumentsPanel = ({ documents, downloadDocument, refillDocument, orderFilter, clearOrderFilter }: any) => {
   const { user } = useAuth();
   const [liveDocs, setLiveDocs] = useState<PaystackDocument[]>([]);
   const [loadingLive, setLoadingLive] = useState(true);
@@ -646,7 +647,7 @@ const DocumentsPanel = ({ documents, downloadDocument, refillDocument }: any) =>
       setLoadingLive(true);
       const { data, error } = await supabase
         .from("documents")
-        .select("id, file_name, file_url, download_count, max_downloads, created_at")
+        .select("id, file_name, file_url, download_count, max_downloads, created_at, order_id")
         .order("created_at", { ascending: false });
       if (cancelled) return;
       if (error) {
