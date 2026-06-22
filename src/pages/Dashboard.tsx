@@ -748,8 +748,10 @@ const DocumentsPanel = ({ documents, downloadDocument, refillDocument, orderFilt
               );
             })}
           </div>
-        )}
+          );
+        })()}
       </section>
+
 
       {/* Legacy / sample documents (local state) */}
       {documents.length > 0 && (
