@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AnnouncementBar from "@/components/AnnouncementBar";
+import SEO from "@/components/SEO";
 import { Star, ShoppingCart, Heart, Eye, Filter, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { useMedusaProducts, getProductPrice, getProductRating, getProductBadge } from "@/hooks/use-medusa-products";
@@ -173,8 +174,14 @@ const Services = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Products & Services – The Digital Desk"
+        description="Browse digital guides, consultations, and migration services to power your study-abroad journey."
+        url="/services"
+      />
       <AnnouncementBar />
       <Header />
+
 
       {/* Hero Banner */}
       <section className="bg-primary py-16 md:py-24">

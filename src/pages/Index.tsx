@@ -13,11 +13,18 @@ import InstagramGallery from "@/components/InstagramGallery";
 import FeaturesBar from "@/components/FeaturesBar";
 import Footer from "@/components/Footer";
 import PurchaseNotification from "@/components/PurchaseNotification";
+import SEO from "@/components/SEO";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="The Digital Desk – Study Abroad Resources & Digital Products"
+        description="Study abroad services, migration assistance, visa processing, and digital guides to help you achieve your global ambitions."
+        url="/"
+      />
       <AnnouncementBar />
+
       <Header />
       <HeroSlider />
       <CategoriesSection />

@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AnnouncementBar from "@/components/AnnouncementBar";
+import SEO from "@/components/SEO";
 import { Mail, Phone, MapPin, Clock, Send } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -30,8 +31,14 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Contact Us – The Digital Desk"
+        description="Get in touch with The Digital Desk for study abroad, migration support, and digital product inquiries."
+        url="/contact"
+      />
       <AnnouncementBar />
       <Header />
+
 
       {/* Hero */}
       <section className="bg-primary py-16 md:py-24">
