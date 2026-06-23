@@ -357,7 +357,11 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
                 { method: "GET" },
               );
               if (verifyErr || verifyData?.status !== "success") {
-                toast({ title: "Payment not completed", description: "We couldn't confirm your payment.", variant: "destructive" });
+                toast({
+                  title: "Payment could not be confirmed",
+                  description: "We weren't able to verify your payment. If you were charged, please contact support with your reference.",
+                  variant: "destructive",
+                });
                 resolve(false);
                 return;
               }
@@ -366,25 +370,34 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
                 total,
                 paystack_reference: response.reference,
                 status: "paid",
-                metadata: { items: itemsSnapshot },
+                metadata: { items: itemsSnapshot, email: user.email, currency: "NGN", total },
               });
               if (insertErr) {
-                toast({ title: "Order saved partially", description: insertErr.message, variant: "destructive" });
+                toast({
+                  title: "Order partially saved",
+                  description: "Payment was confirmed but we couldn't save the order. Contact support so we can release your downloads.",
+                  variant: "destructive",
+                });
               }
               setCart([]);
-              toast({ title: "Payment successful", description: `Reference: ${response.reference}` });
+              toast({ title: "Payment successful", description: "Redirecting you to your order confirmation..." });
+              navigate(`/order-confirmation?reference=${encodeURIComponent(response.reference)}`);
               resolve(true);
             })();
           },
           onClose: () => {
-            toast({ title: "Payment cancelled" });
+            toast({ title: "Payment cancelled", description: "No charge was made. You can try again anytime." });
             resolve(false);
           },
         });
         handler.openIframe();
       });
     } catch (e) {
-      toast({ title: "Checkout error", description: (e as Error).message, variant: "destructive" });
+      toast({
+        title: "Checkout failed",
+        description: (e as Error).message || "Something went wrong starting your payment. Please try again or contact support.",
+        variant: "destructive",
+      });
       return false;
     }
   };
