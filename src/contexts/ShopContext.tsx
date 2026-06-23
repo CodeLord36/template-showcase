@@ -178,6 +178,7 @@ const seedMockData = (uid: string) => {
 
 export const ShopProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated, openAuthModal } = useAuth();
+  const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>(() => readJSON(GUEST_CART_KEY, [] as CartItem[]));
   const [favourites, setFavourites] = useState<ShopItem[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<RecentItem[]>([]);
